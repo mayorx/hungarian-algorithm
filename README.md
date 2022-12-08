@@ -31,7 +31,7 @@ or using default setting
 ```
 weights = np.random.randn(n, m)
 matcher = KMMatcher(weights)
-best = matcher.solve()
+best, all_matches, _ = matcher.solve()
 ```
 
 ### Performance
