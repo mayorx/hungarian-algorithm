@@ -12,9 +12,15 @@ class KMMatcher:
         weights = np.array(weights).astype(np.float32)
         self.weights = weights
         self.n, self.m = weights.shape
+        self.is_transpose = False
+        if self.n > self.m:
+            self.weights = self.weights.T
+            self.n, self.m = self.weights.shape
+            self.is_transpose = True
         assert self.n <= self.m
+
         # init label
-        self.label_x = np.max(weights, axis=1)
+        self.label_x = np.max(self.weights, axis=1)
         self.label_y = np.zeros((self.m, ), dtype=np.float32)
 
         self.max_match = 0
@@ -80,20 +86,29 @@ class KMMatcher:
                     queue.append(x)
                     self.add_to_tree(self.yx[y], x)
 
-    def solve(self, verbose = False):
+    def _solve(self, verbose = False):
         while self.max_match < self.n:
             x, y = self.find_augment_path()
             self.do_augment(x, y)
 
-        sum = 0.
+        sum_ = 0.
+        matches = []
         for x in range(self.n):
             if verbose:
                 print('match {} to {}, weight {:.4f}'.format(x, self.xy[x], self.weights[x, self.xy[x]]))
-            sum += self.weights[x, self.xy[x]]
-        self.best = sum
+            sum_ += self.weights[x, self.xy[x]]
+            matches.append((x, self.xy[x]))
+        self.best = sum_
         if verbose:
-            print('ans: {:.4f}'.format(sum))
-        return sum
+            print('ans: {:.4f}'.format(sum_))
+        return sum_, matches
+
+
+    def solve(self, verbose=False):
+        sum_, matches = self._solve(verbose=verbose)
+        if self.is_transpose:
+            matches = sorted([(y, x) for x, y in matches])
+        return sum_, matches, self.is_transpose
 
 
     def add_to_tree(self, x, prevx):
